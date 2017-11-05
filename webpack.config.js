@@ -11,7 +11,7 @@ module.exports = [
     {
         name: 'browser',
         entry: [
-            './frontend/index'
+            'babel-polyfill', './frontend/index'
         ],
         module: {
             loaders: [
@@ -49,7 +49,7 @@ module.exports = [
         name: 'server',
         target: 'node',
         entry: [
-            './server'
+            'babel-polyfill', './server'
         ],
         output: {
             path: path.join(__dirname, '/dist'),

@@ -1,11 +1,14 @@
 var path = require('path');
 var express = require('express');
+const bodyParser = require('body-parser');
 var app = express();
 var PORT = process.env.PORT || 8080;
 
 import registerApi from './backend/routes';
 
 app.use(express.static(path.join(__dirname, 'dist')));
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 registerApi(app);
 

@@ -1,36 +1,43 @@
+import mongoService from '../mongodb';
+
 const registerTaskApi = (router) => {
     // creates a new task
-    router.post('/board/:id/task', (req, res) => {
-        res.send({
-            message: `Creating a new task in a board with id: ${req.params.id}.`
+    router.post('/board/:id/task', async (req, res) => {
+        const result = await mongoService.createTask(req.params.id, req.body);
+        res.status(201).send({
+            result
         });
     });
 
     // gets all tasks of the board
-    router.get('/board/:id/task', (req, res) => {
-        res.send({
-            message: `Getting tasks list of board with id: ${req.params.id}.`
+    router.get('/board/:id/task', async (req, res) => {
+        const result = await mongoService.getTasksList(req.params.id);
+        res.status(200).send({
+            result
         });
     });
 
     // gets a task by id
-    router.get('/board/:boardId/task/:taskId', (req, res) => {
-        res.send({
-            message: `Getting a task with id: ${req.params.taskId} of board with id: ${req.params.boardId}.`
+    router.get('/board/:boardId/task/:taskId', async (req, res) => {
+        const result = await mongoService.getTask(req.params.boardId, req.params.taskId);
+        res.status(200).send({
+            result
         });
     });
 
     // updates a task by id
-    router.put('/board/:boardId/task/:taskId', (req, res) => {
-        res.send({
-            message: `Updating a task with id: ${req.params.taskId} of board with id: ${req.params.boardId}.`
+    router.put('/board/:boardId/task/:taskId', async (req, res) => {
+        await mongoService.updateTask(req.params.boardId, req.params.taskId, req.body);
+        res.status(204).send({
+            message: 'Task updated'
         });
     });
 
     // deletes a task by id
-    router.delete('/board/:boardId/task/:taskId', (req, res) => {
-        res.send({
-            message: `Deleting a task with id: ${req.params.taskId} of board with id: ${req.params.boardId}.`
+    router.delete('/board/:boardId/task/:taskId', async (req, res) => {
+        await mongoService.deleteTask(req.params.boardId, req.params.taskId);
+        res.status(204).send({
+            message: 'Task deleted'
         });
     });
 };
