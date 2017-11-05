@@ -1,5 +1,6 @@
 const url = 'mongodb://localhost:27017/test';
 import Mongo from 'mongodb';
+var bcrypt = require('bcrypt');
 
 const MongoClient = Mongo.MongoClient;
 const ObjectId = Mongo.ObjectId;
@@ -11,10 +12,9 @@ MongoClient.connect(url, async (err, database) => {
     db = database;
     collections = {
         boards: database ? db.collection('boards'): null,
-        tasks: database ? db.collection('tasks'): null
+        tasks: database ? db.collection('tasks'): null,
+        users: database ? db.collection('users'): null
     };
-    const res = await collections.boards.find();
-    console.log(res);
     if (err) {
         console.log(err);
     }
@@ -147,6 +147,74 @@ const deleteTask = async (boardId, taskId) => {
     }
 };
 
+const createUser = async (user) => {
+    try {
+        const hash = await bcrypt.hash(user.password, 10);
+        const res = await collections.users.insertOne({
+            username: user.username,
+            password: hash,
+            token: null
+        });
+        return res.ops[0];
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const saveAccessToken = async (token, client, user) => {
+    try {
+        await collections.users.updateOne(
+            { _id: ObjectId(user._id) },
+            {
+                $set: {
+                    token: {
+                        accessToken: token.accessToken,
+                        accessTokenExpiresAt: token.accessTokenExpiresAt,
+                        client: {
+                            id: client.id
+                        }
+                    }
+
+                }
+            }
+        )
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const getUser = async (username, password) => {
+    try {
+        const res = await collections.users.findOne({
+            username: username
+        });
+        if (res) {
+            const comp = await bcrypt.compare(password, res.password);
+            if (comp) {
+                return res;
+            }
+        }
+        return false;
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const getAccessToken = async (token) => {
+    try {
+        const res = await collections.users.findOne({
+            'token.accessToken': token
+        });
+        return res;
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
 export default {
     createBoard,
     getBoardsList,
@@ -157,5 +225,9 @@ export default {
     getTasksList,
     getTask,
     updateTask,
-    deleteTask
+    deleteTask,
+    createUser,
+    saveAccessToken,
+    getUser,
+    getAccessToken
 }
