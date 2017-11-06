@@ -3,7 +3,7 @@ import mongoService from '../mongodb';
 const registerBoardApi = (router, auth) => {
     // creates a new board
     router.post('/board', auth.authenticate(), async (req, res) => {
-        const result = await mongoService.createBoard({ name: req.body.name });
+        const result = await mongoService.createBoard({ name: req.body.name }, req.get('Authorization'));
         res.status(201).send({
             result
         });
@@ -11,7 +11,7 @@ const registerBoardApi = (router, auth) => {
 
     // gets all boards list
     router.get('/board', auth.authenticate(), async (req, res) => {
-        const result = await mongoService.getBoardsList();
+        const result = await mongoService.getBoardsList(req.get('Authorization'));
         res.status(200).send({
             result
         });
@@ -19,7 +19,7 @@ const registerBoardApi = (router, auth) => {
 
     // gets a board by id
     router.get('/board/:id', auth.authenticate(), async (req, res) => {
-        const result = await mongoService.getBoard(req.params.id);
+        const result = await mongoService.getBoard(req.params.id, req.get('Authorization'));
         res.status(200).send({
             result
         });
@@ -27,7 +27,7 @@ const registerBoardApi = (router, auth) => {
 
     // updates a board by id
     router.put('/board/:id', auth.authenticate(), async (req, res) => {
-        await mongoService.updateBoard(req.params.id, { name: req.body.name });
+        await mongoService.updateBoard(req.params.id, { name: req.body.name }, req.get('Authorization'));
         res.status(204).send({
             message: `Board updated`
         });
@@ -35,7 +35,7 @@ const registerBoardApi = (router, auth) => {
 
     // deletes a board by id
     router.delete('/board/:id', auth.authenticate(), async (req, res) => {
-        await mongoService.deleteBoard(req.params.id);
+        await mongoService.deleteBoard(req.params.id, req.get('Authorization'));
         res.status(204).send({
             message: `Board deleted`
         });

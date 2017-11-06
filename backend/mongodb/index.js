@@ -1,6 +1,7 @@
 const url = 'mongodb://localhost:27017/test';
 import Mongo from 'mongodb';
 var bcrypt = require('bcrypt');
+import _ from 'lodash';
 
 const MongoClient = Mongo.MongoClient;
 const ObjectId = Mongo.ObjectId;
@@ -20,10 +21,19 @@ MongoClient.connect(url, async (err, database) => {
     }
 });
 
-const createBoard = async (board) => {
+const getUserIdByToken = async (token) => {
+    const tk = token.slice(7);
+    return collections.users.findOne({
+        'token.accessToken': tk
+    });
+};
+
+const createBoard = async (board, token) => {
     try {
+        const user = await getUserIdByToken(token);
         const res = await collections.boards.insertOne({
-            name: board.name
+            name: board.name,
+            userId: user._id
         });
         return res.ops[0];
     } catch (err) {
@@ -32,115 +42,167 @@ const createBoard = async (board) => {
     }
 };
 
-const getBoardsList = async () => {
+const getBoardsList = async (token) => {
     try {
-        const res = await collections.boards.find().toArray();
-        return res;
-    } catch (err) {
-        console.log(err);
-        return 'Error';
-    }
-};
-
-const getBoard = async (boardId) => {
-    try {
-        const res = await collections.boards.findOne({ _id: ObjectId(boardId) });
-        return res;
-    } catch (err) {
-        console.log(err);
-        return 'Error';
-    }
-};
-
-const updateBoard = async (boardId, board) => {
-    try {
-        const res = await collections.boards.updateOne(
-            { _id: ObjectId(boardId) },
-            { $set: { name: board.name } }
-        );
-        return res;
-    } catch (err) {
-        console.log(err);
-        return 'Error';
-    }
-};
-
-const deleteBoard = async (boardId) => {
-    try {
-        const res = await collections.boards.remove(
-            { _id: ObjectId(boardId) }
-        );
-        return res;
-    } catch (err) {
-        console.log(err);
-        return 'Error';
-    }
-};
-
-const createTask = async (boardId, task) => {
-    try {
-        const res = await collections.tasks.insertOne({
-            name: task.name,
-            description: task.description,
-            status: task.status,
-            boardId: boardId
-        });
-        return res.ops[0];
-    } catch (err) {
-        console.log(err);
-        return 'Error';
-    }
-};
-
-const getTasksList = async (boardId) => {
-    try {
-        const res = await collections.tasks.find({
-            boardId: boardId
+        const user = await getUserIdByToken(token);
+        const res = await collections.boards.find({
+            userId: ObjectId(user._id)
         }).toArray();
-        return res;
-    } catch (err) {
-        console.log(err);
-        return 'Error';
-    }
-};
-const getTask = async (boardId, taskId) => {
-    try {
-        const res = await collections.tasks.findOne({
-            _id: ObjectId(taskId),
-            boardId: boardId
+
+        return res.map((board) => {
+            return _.omit(board, ['userId'])
         });
-        return res;
     } catch (err) {
         console.log(err);
         return 'Error';
     }
 };
 
-const updateTask = async (boardId, taskId, task) => {
+const getBoard = async (boardId, token) => {
     try {
-        const res = await collections.tasks.updateOne(
-            { _id: ObjectId(taskId), boardId: boardId },
-            {
-                $set: {
-                    name: task.name,
-                    description: task.description,
-                    status: task.status,
+        const user = await getUserIdByToken(token);
+        const res = await collections.boards.findOne({ _id: ObjectId(boardId) });
+        if (res && res.userId.toString() == user._id.toString()) {
+            return res;
+        }
+        return 'Unauthorized';
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const updateBoard = async (boardId, board, token) => {
+    try {
+        const user = await getUserIdByToken(token);
+        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
+        if (existing && existing.userId.toString() == user._id.toString()) {
+            const res = await collections.boards.updateOne(
+                { _id: ObjectId(boardId) },
+                { $set: { name: board.name } }
+            );
+            return res;
+        }
+        return 'Unauthorized';
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const deleteBoard = async (boardId, token) => {
+    try {
+        const user = await getUserIdByToken(token);
+        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
+        if (existing && existing.userId.toString() == user._id.toString()) {
+            const res = await collections.boards.remove(
+                { _id: ObjectId(boardId) }
+            );
+            return res;
+        }
+
+        return 'Unauthorized';
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const createTask = async (boardId, task, token) => {
+    try {
+        const user = await getUserIdByToken(token);
+        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
+
+        if (existing && existing.userId.toString() == user._id.toString()) {
+            const res = await collections.tasks.insertOne({
+                name: task.name,
+                description: task.description,
+                status: task.status,
+                boardId: boardId
+            });
+            return res.ops[0];
+        }
+
+        return 'Unauthorized';
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const getTasksList = async (boardId, token) => {
+    try {
+        const user = await getUserIdByToken(token);
+        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
+
+        if (existing && existing.userId.toString() == user._id.toString()) {
+            const res = await collections.tasks.find({
+                boardId: boardId
+            }).toArray();
+            return res;
+        }
+        return 'Unauthorized';
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+const getTask = async (boardId, taskId, token) => {
+    try {
+        const user = await getUserIdByToken(token);
+        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
+
+        if (existing && existing.userId.toString() == user._id.toString()) {
+            const res = await collections.tasks.findOne({
+                _id: ObjectId(taskId),
+                boardId: boardId
+            });
+            return res;
+        }
+        return 'Unauthorized';
+    } catch (err) {
+        console.log(err);
+        return 'Error';
+    }
+};
+
+const updateTask = async (boardId, taskId, task, token) => {
+    try {
+        const user = await getUserIdByToken(token);
+        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
+
+        if (existing && existing.userId.toString() == user._id.toString()) {
+            const res = await collections.tasks.updateOne(
+                { _id: ObjectId(taskId), boardId: boardId },
+                {
+                    $set: {
+                        name: task.name,
+                        description: task.description,
+                        status: task.status,
+                    }
                 }
-            }
-        );
-        return res;
+            );
+            return res;
+        }
+        return 'Unauthorized';
     } catch (err) {
         console.log(err);
         return 'Error';
     }
 };
 
-const deleteTask = async (boardId, taskId) => {
+const deleteTask = async (boardId, taskId, token) => {
     try {
-        const res = await collections.tasks.remove(
-            { _id: ObjectId(taskId), boardId: boardId }
-        );
-        return res;
+        const user = await getUserIdByToken(token);
+        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
+
+        if (existing && existing.userId.toString() == user._id.toString()) {
+            const res = await collections.tasks.remove(
+                { _id: ObjectId(taskId), boardId: boardId }
+            );
+            return res;
+        }
+        return 'Unauthorized';
     } catch (err) {
         console.log(err);
         return 'Error';
