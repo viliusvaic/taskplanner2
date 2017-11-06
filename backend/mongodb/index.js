@@ -98,6 +98,9 @@ const deleteBoard = async (boardId, token) => {
             const res = await collections.boards.remove(
                 { _id: ObjectId(boardId) }
             );
+            await collections.tasks.remove({
+                boardId: boardId
+            });
             return res;
         }
 
