@@ -33,6 +33,7 @@ const createBoard = async (board, token) => {
         const user = await getUserIdByToken(token);
         const res = await collections.boards.insertOne({
             name: board.name,
+            description: board.description,
             userId: user._id
         });
         return res.ops[0];
@@ -79,7 +80,7 @@ const updateBoard = async (boardId, board, token) => {
         if (existing && existing.userId.toString() == user._id.toString()) {
             const res = await collections.boards.updateOne(
                 { _id: ObjectId(boardId) },
-                { $set: { name: board.name } }
+                { $set: { name: board.name, description: board.description } }
             );
             return res;
         }
@@ -121,6 +122,8 @@ const createTask = async (boardId, task, token) => {
                 name: task.name,
                 description: task.description,
                 status: task.status,
+                weight: task.weight,
+                deadline: task.deadline,
                 boardId: boardId
             });
             return res.ops[0];
@@ -182,6 +185,8 @@ const updateTask = async (boardId, taskId, task, token) => {
                         name: task.name,
                         description: task.description,
                         status: task.status,
+                        weight: task.weight,
+                        deadline: task.deadline
                     }
                 }
             );
@@ -196,16 +201,10 @@ const updateTask = async (boardId, taskId, task, token) => {
 
 const deleteTask = async (boardId, taskId, token) => {
     try {
-        const user = await getUserIdByToken(token);
-        const existing = await collections.boards.findOne({ _id: ObjectId(boardId) });
-
-        if (existing && existing.userId.toString() == user._id.toString()) {
-            const res = await collections.tasks.remove(
-                { _id: ObjectId(taskId), boardId: boardId }
-            );
-            return res;
-        }
-        return 'Unauthorized';
+        const res = await collections.tasks.remove(
+            { _id: ObjectId(taskId) }
+        );
+        return res;
     } catch (err) {
         console.log(err);
         return 'Error';

@@ -17,16 +17,12 @@ app.oauth = new OAuthServer({
     model: model
 });
 
-app.post('/oauth/token', app.oauth.token());
-
-app.get('/secret', app.oauth.authenticate(), (req, res) => {
-    res.send('here');
-});
+app.post('/api/oauth/token', app.oauth.token());
 
 registerApi(app, app.oauth);
 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/dist/index.html')
+app.get('/*', (req, res) => {
+    res.sendFile(path.resolve('./dist/index.html'));
 });
 
 app.listen(PORT, (error) => {

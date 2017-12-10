@@ -11,7 +11,7 @@ module.exports = [
     {
         name: 'browser',
         entry: [
-            'babel-polyfill', './frontend/index'
+            'react-hot-loader/patch', 'babel-polyfill', './frontend/index'
         ],
         module: {
             loaders: [
